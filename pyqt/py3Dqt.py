@@ -16,9 +16,12 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QWidget, QLabel, QLineEdit, QSlider,
-    QTextEdit, QGridLayout, QApplication, QSizePolicy)
+    QTextEdit, QGridLayout, QApplication, QSizePolicy, QPushButton)
+import random
 
-
+SIZE_Z = 50
+SIZE_Y = 30
+SIZE_X = 20
 
 class Example(QWidget):
     
@@ -28,46 +31,62 @@ class Example(QWidget):
         
     def initUI(self):
         
-        # ファイル読み込み
-        d = genfromtxt("iris.csv", delimiter=",")
-
-        # 軸ラベルの設定
-        #ax.set_xlabel("X-axis")
-        #ax.set_ylabel("Y-axis")
-        #ax.set_zlabel("Z-axis")
-
-        # 表示範囲の設定
-        #ax.set_xlim(4, 8)
-        #ax.set_ylim(2, 5)
-        #ax.set_zlim(1, 8)
-
-        # 抽出条件設定
-        d1 = d[d[:,0] >= 7]
-        d2 = d[(d[:,0] < 7) & ((d[:,1] > 3) & (d[:,1] <= 3.5))]
-        d3 = d[(d[:,0] < 7) & ((d[:,1] <= 3) | (d[:,1] > 3.5))]
+        self.Max_th = 1.0
+        self.Min_th = 0.9
         
-        self.d_array2D = d1
+        #3D画像生成
+        self.img_3d = []
+        for z in range(SIZE_Z):
+            for y in range(SIZE_Y):
+                for x in range(SIZE_X):
+                    val = random.random()
+                    self.img_3d.append(val)        
+        self.img_3d = np.array(self.img_3d)
+        
+        idxes_x = []
+        idxes_y = []
+        idxes_z = []
+        img_3d_show = []
+        for z in range(SIZE_Z):
+            for y in range(SIZE_Y):
+                for x in range(SIZE_X):
+                    img_idx = x + SIZE_X * ( y + SIZE_Y * z)
+                    val = self.img_3d[img_idx]
+                    if val < self.Max_th and val > self.Min_th:
+                        idxes_x.append(x)
+                        idxes_y.append(y)
+                        idxes_z.append(z)
+                        img_3d_show.append(val)
+                        
+        img_3d_show = np.array(img_3d_show)
+        print("max min ", img_3d_show.max(), img_3d_show.min())
+        print("len x,y,z,img_3d ",len(idxes_x), len(idxes_y), len(idxes_z), len(img_3d_show))
         
         fig = pyplot.figure()
         self.fig_canvas = FigureCanvas(fig)
         self.axes = Axes3D(fig)
-        self.axes.plot(d1[:,0], d1[:,1], d1[:,2], "o", color="#cccccc", ms=4, mew=0.5)
-        ##sns.heatmap(self.d_array2D, vmin=0, vmax=7, annot=False, ax=self.axes)
+        cm = pyplot.cm.get_cmap('jet')
+        self.axes.scatter(idxes_x,idxes_y,idxes_z,c=img_3d_show,cmap=cm)
         self.fig_canvas.draw()
         
-        #slder
-        self.SIZE_Z = 999
-        sld = QSlider(Qt.Horizontal, self)
-        sld.setFocusPolicy(Qt.NoFocus)
-        sld.setGeometry(30, 40, 100, 30)
-        sld.setRange(0, self.SIZE_Z-1)
-        sld.valueChanged[int].connect(self.changeValue)        
-
+        #
+        self.b1 = QPushButton('set')
+        self.b1.setCheckable(True)
+        self.b1.clicked.connect(self.btnstate)
+        
+        l1 = QLabel("max")
+        l2 = QLabel("min")
+        self.e1 = QLineEdit()
+        self.e2 = QLineEdit()
+        
+        #
         grid = QGridLayout()
-        grid.setSpacing(10)
-
-        grid.addWidget(sld, 1, 0)
-        grid.addWidget(self.fig_canvas, 2, 0)
+        grid.addWidget(self.fig_canvas, 1, 0)
+        grid.addWidget(l1, 2, 0)
+        grid.addWidget(self.e1, 2, 1)
+        grid.addWidget(l2, 3, 0)
+        grid.addWidget(self.e2, 3, 1)
+        grid.addWidget(self.b1, 4, 1)
         
         self.setLayout(grid) 
         
@@ -75,21 +94,40 @@ class Example(QWidget):
         self.setWindowTitle('Review')    
         self.show()
         
-    def changeValue(self, value):
-       # self.set_figure(value)
-        print('self.idx_z: ', self.idx_z)
-            
-    def set_figure(self, idx_z_):
-        self.d_array2D = []
-        self.idx_z = idx_z_
-        for y in range(self.SIZE_Y):
-            for x in range(self.SIZE_X):
-                idx = x + self.SIZE_X * ( y + self.SIZE_Y * self.idx_z)
-                self.d_array2D.append(self.d_array[idx])
-        self.d_array2D = np.array(self.d_array2D).reshape(self.SIZE_Y,self.SIZE_X)
-        sns.heatmap(self.d_array2D, vmin=0, vmax=7, annot=False, ax=self.axes, cbar = False)
-        self.fig_canvas.draw()
+    def btnstate(self):
+      if self.b1.isChecked():
+        print("button pressed")
+        self.Max_th = float(self.e1.text())
+        self.Min_th = float(self.e2.text())
         
+        self.axes.clear()
+        #3D画像表示
+        idxes_x = []
+        idxes_y = []
+        idxes_z = []
+        img_3d_show = []
+        for z in range(SIZE_Z):
+            for y in range(SIZE_Y):
+                for x in range(SIZE_X):
+                    img_idx = x + SIZE_X * ( y + SIZE_Y * z)
+                    val = self.img_3d[img_idx]
+                    if val < self.Max_th and val > self.Min_th:
+                        idxes_x.append(x)
+                        idxes_y.append(y)
+                        idxes_z.append(z)
+                        img_3d_show.append(val)
+                        
+        img_3d_show = np.array(img_3d_show)
+        print("max min ", img_3d_show.max(), img_3d_show.min())
+        print("len x,y,z,img_3d ",len(idxes_x), len(idxes_y), len(idxes_z), len(img_3d_show))
+        
+        #fig = pyplot.figure()
+        #self.fig_canvas = FigureCanvas(fig)
+        #self.axes = Axes3D(fig)
+        cm = pyplot.cm.get_cmap('jet')
+        self.axes.scatter(idxes_x,idxes_y,idxes_z,c=img_3d_show,cmap=cm)
+        self.fig_canvas.draw()
+            
     def saveRawImg(self, d_array):
         fout = open('d_array.raw', 'wb')
         for i in range(len(d_array)):
