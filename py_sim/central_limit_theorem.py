@@ -35,7 +35,7 @@ def show_central_limit_theorem(Name_dstribution):
         p = 0.5
         n = 2
         Sig = n*p*(1-p)
-        Mu = np
+        Mu = n*p
         x = np.random.binomial(2,0.5, N_sample)
 
     x_l = np.floor(x.min() - 1)
