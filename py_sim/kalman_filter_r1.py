@@ -9,9 +9,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-tnum = 10
-dt = 0.1
-acc = 0.1
+T = 5 #[s]
+dt = 0.1 #[s]
+acc = 0
+vlc = 30 #[kph]
+vlc_mps = vlc / 3.6
 
 x_est = np.array([[0, 0]]).T
 P_est = np.array([[0, 0],[0, 0]])
@@ -36,23 +38,28 @@ x_est_array.append(x_est)
 x_tr_array.append(x_tr)
 t_array_0.append(0)
 
-for i in range(tnum):
+# Ground Truth
+for t in [dt]*len(np.arange(0, T, dt)):
     x_tr = F.dot(x_tr) + G*w
     x_tr_array.append(x_tr)
     
+# Observed
+for t in [dt]*len(np.arange(0, T, dt)):
+    z = H.dot(x_tr) + np.array([[np.random.normal(0,R[0,0]), np.random.normal(0,R[1,1])]]).T
+    z_array.append(z)
+    
+for i in [dt]*len(np.arange(0, T, dt)):
     x_est = F.dot(x_est) + G*w
     P_est = F.dot(P_est).dot(F.T) + Q
-    
-    z = H.dot(x_est) + np.array([[np.random.normal(0,R[0,0]), np.random.normal(0,R[1,1])]]).T
-    e = z - H.dot(x_est)
+
     S = R + H.dot(P_est).dot(H.T)
     K = P_est.dot(H.T).dot(np.linalg.inv(S))
-
+    
+    e = z - H.dot(x_est)
     x_klm = x_est + K.dot(e)
     P_klm = (np.matrix(np.identity(2)) - K.dot(H)).dot(P_est)
-        
+    
     x_est_array.append(x_est)
-    z_array.append(z)
     x_klm_array.append(x_klm)
     
     t_array_0.append((i+1)*dt)
@@ -78,7 +85,7 @@ for i in range(len(z_array)):
 fig = plt.figure()
 ax = fig.add_subplot(111)
 ax.plot(t_array_0,x_tr_array_pos,color='red',marker='o',label='gt')
-ax.plot(t_array_0,x_est_array_pos,color='green',marker='o',label='gt')
+#ax.plot(t_array_0,x_est_array_pos,color='green',marker='o',label='gt')
 ax.plot(t_array,z_array_pos,color='blue',marker='o',label='signal')
 ax.plot(t_array,x_klm_array_pos,color='orange',marker='o',label='signal filtered')
 ax.set_xlabel('t')
