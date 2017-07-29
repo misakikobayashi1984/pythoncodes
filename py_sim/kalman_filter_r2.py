@@ -18,7 +18,6 @@ Created on Tue Jul 25 16:30:24 2017
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-%matplotlib inline 
 
 def lkf(T, Y, U, mu0, Sigma0, A, B, C, Q, R):
     '''Linear Kalman Filter
@@ -46,6 +45,7 @@ def lkf(T, Y, U, mu0, Sigma0, A, B, C, Q, R):
     Sigma = Sigma0 # 初期誤差共分散行列
 
     M = [mu] # 状態推定値列
+    Sigma_Mat = [Sigma]
 
     for i in range(T):
         # 推定
@@ -59,18 +59,21 @@ def lkf(T, Y, U, mu0, Sigma0, A, B, C, Q, R):
         mu = mu_ + K * yi
         Sigma = Sigma_ - K * C * Sigma_
         M.append(mu)
+        Sigma_Mat.append(Sigma)
 
-    return M
+    return M, Sigma_Mat
 
 ''' 設定 '''
 def plot_pos():
-    vlc = 30 #[kph]     
-    x_0 = np.mat([[-80],[1.6]]) #[m]
+    vlc_x = 30 #[kph]
+    vlc_y = 3.6 #[kph]  
+    x_0 = np.mat([[-80],[0]]) #[m]
     del_ts = 0.1 #[s]
     T_s = 10 #[s]
     
     ''' 定数 '''
-    vlc_mps = vlc / 3.6
+    vlc_x_mps = vlc_x / 3.6
+    vlc_y_mps = vlc_y / 3.6
     T = int( T_s / del_ts )# 観測数
     
     # 状態方程式
@@ -78,7 +81,7 @@ def plot_pos():
     A = np.mat([[1,0], [0,1]])
     B = np.mat([[del_ts,0], [0,del_ts]])
     Q = np.mat([[0.001,0], [0,0.001]])#真値に乗る誤差
-    u = np.mat([[vlc_mps],[0]]) # 入力（一定）
+    u = np.mat([[vlc_x_mps],[vlc_y_mps]]) # 入力（一定）
     # 観測方程式
     # y = C * x + v, v ~ N(0,R)
     C = np.mat([[1,0], [0,1]])#単位変換のための行列
@@ -99,23 +102,25 @@ def plot_pos():
     # LKF
     mu0 = x_0 # 初期状態推定値
     Sigma0 = np.mat([[0,0],[0,0]]) # 初期誤差共分散行列
-    M = lkf(T, Y, U, mu0, Sigma0, A, B, C, Q, R)
+    M, Sigma_mat = lkf(T, Y, U, mu0, Sigma0, A, B, C, Q, R)
     
     # 描画
     fig = plt.figure()
     ax = fig.add_subplot(111)
     a, b = np.array(np.concatenate(X,axis=1))
-    ax.plot(a,b,color='red',marker='o',label='gt')
+    ax.plot(a,b,color='red',marker='o',label='true')
     a, b = np.array(np.concatenate(Y,axis=1))
     ax.plot(a,b,color='blue',marker='o',label='obseved')
     a, b = np.array(np.concatenate(M,axis=1))
-    ax.plot(a,b,color='orange',marker='o',label='lkf output')
+    ax.plot(a,b,color='orange',marker='o',label='estimated')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.legend(loc="lower right")
     
+    return Sigma_mat
+    
 if __name__ == "__main__":
-    plot_pos()
+    Sigma_mat = plot_pos()
 
 #例
 # Q = np.mat([[0,0], [0,0]])の時
